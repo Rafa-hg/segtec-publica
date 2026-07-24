@@ -683,12 +683,12 @@ function doLogout(){
 
 async function initApp(){
   try {
-    const meRes = await fetch('/api/me', { credentials: 'include' });
+    const meRes = await fetch('/api/me', { credentials: 'include', cache: 'no-store' });
     if (!meRes.ok) { window.location.href = '/login.html'; return; }
     currentUser = await meRes.json();
     if (currentUser.role !== 'public' && currentUser.role !== 'admin') { window.location.href = '/login.html'; return; }
 
-    const catRes = await fetch('/api/catalog', { credentials: 'include' });
+    const catRes = await fetch('/api/catalog', { credentials: 'include', cache: 'no-store' });
     if (!catRes.ok) { window.location.href = '/login.html'; return; }
     CATALOG = await catRes.json();
 
