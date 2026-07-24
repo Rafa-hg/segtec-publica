@@ -78,7 +78,12 @@ function requireRole(event, role) {
 function json(statusCode, body, extraHeaders) {
   return {
     statusCode,
-    headers: { 'Content-Type': 'application/json', ...(extraHeaders || {}) },
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
+      'Pragma': 'no-cache',
+      ...(extraHeaders || {}),
+    },
     body: JSON.stringify(body),
   };
 }
