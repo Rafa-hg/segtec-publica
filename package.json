@@ -1,0 +1,21 @@
+{
+  "name": "segtec-publica",
+  "version": "1.0.0",
+  "description": "SEGTEC - Lista de precios pública (registro con aprobación, catálogo, presupuestos)",
+  "private": true,
+  "scripts": {
+    "test": "node tests/run_tests.js",
+    "seed-admin": "node scripts/seed-admin.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "exceljs": "^4.4.0",
+    "jimp": "^1.6.1",
+    "jsonwebtoken": "^9.0.3",
+    "nodemailer": "^9.0.3",
+    "pg": "^8.22.0"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
+  }
+}

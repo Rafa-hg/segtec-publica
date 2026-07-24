@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>SEGTEC — Recuperar contraseña</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --navy: #1F3864; --navy2: #2E5395; --white: #FFFFFF; --gray: #595959; --border: #D0D8E8; --green: #2F7A4F; --font: 'Inter','Segoe UI',Arial,sans-serif; }
+  html { font-size: 13px; }
+  body { font-family: var(--font); min-height: 100vh; }
+  .screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 60%, #3a6bc4 100%); padding: 20px; }
+  .box { background: var(--white); border-radius: 12px; padding: 40px; width: 400px; max-width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+  .logo { text-align: center; margin-bottom: 20px; }
+  .logo .brand { font-size: 22px; font-weight: 800; letter-spacing: 2px; color: var(--navy); display: block; }
+  h2 { font-size: 15px; font-weight: 600; color: var(--navy); margin-bottom: 8px; text-align: center; }
+  p.desc { font-size: 12px; color: var(--gray); text-align: center; margin-bottom: 20px; line-height:1.5; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 11px; font-weight: 600; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .field input { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 6px; font-size: 13px; outline: none; }
+  .btn { width: 100%; padding: 12px; background: var(--navy); color: var(--white); border: none; border-radius: 6px; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .btn:disabled { background: #aaa; cursor: not-allowed; }
+  .msg-ok { background: #EAF6EF; border: 1px solid #BEE3CC; color: var(--green); padding: 14px; border-radius: 6px; font-size: 12.5px; margin-top: 12px; display: none; text-align: center; }
+  .msg-error { background: #FEE; border: 1px solid #FCC; color: #C00; padding: 10px 14px; border-radius: 6px; font-size: 12px; margin-top: 12px; display: none; text-align: center; }
+  .hint { text-align: center; margin-top: 16px; font-size: 11px; }
+  .hint a { color: var(--navy2); text-decoration: none; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="box">
+    <div class="logo"><span class="brand">SEGTEC</span></div>
+    <h2>Recuperar contraseña</h2>
+    <p class="desc">Ingresá tu email y te mandamos un link para elegir una nueva contraseña.</p>
+    <div id="form-wrap">
+      <div class="field"><label>Email</label><input type="email" id="f-email" placeholder="tu@email.com"></div>
+      <button class="btn" id="f-btn" onclick="doForgot()">Enviar link</button>
+    </div>
+    <div class="msg-ok" id="f-ok"></div>
+    <div class="msg-error" id="f-error"></div>
+    <p class="hint"><a href="/login.html">Volver a iniciar sesión</a></p>
+  </div>
+</div>
+<script>
+async function doForgot() {
+  const email = document.getElementById('f-email').value.trim();
+  const okBox = document.getElementById('f-ok');
+  const errorBox = document.getElementById('f-error');
+  okBox.style.display = 'none'; errorBox.style.display = 'none';
+  if (!email) { errorBox.textContent = 'Ingresá tu email.'; errorBox.style.display = 'block'; return; }
+  const btn = document.getElementById('f-btn');
+  btn.disabled = true; btn.textContent = 'Enviando...';
+  try {
+    const res = await fetch('/api/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json().catch(() => ({}));
+    document.getElementById('form-wrap').style.display = 'none';
+    okBox.textContent = data.message || 'Si el email está registrado, te enviamos un link.';
+    okBox.style.display = 'block';
+  } catch (e) {
+    errorBox.textContent = 'No se pudo conectar. Intentá de nuevo.';
+    errorBox.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Enviar link';
+  }
+}
+</script>
+</body>
+</html>

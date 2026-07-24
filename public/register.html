@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>SEGTEC — Solicitar acceso</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #1F3864; --navy2: #2E5395; --white: #FFFFFF; --gray: #595959; --border: #D0D8E8;
+    --green: #2F7A4F; --font: 'Inter','Segoe UI',Arial,sans-serif;
+  }
+  html { font-size: 13px; }
+  body { font-family: var(--font); min-height: 100vh; }
+  .screen { display: flex; align-items: center; justify-content: center; min-height: 100vh;
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 60%, #3a6bc4 100%); padding: 20px; }
+  .box { background: var(--white); border-radius: 12px; padding: 40px 40px 32px; width: 440px; max-width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+  .logo { text-align: center; margin-bottom: 24px; }
+  .logo .brand { font-size: 22px; font-weight: 800; letter-spacing: 2px; color: var(--navy); display: block; }
+  .logo .sub { font-size: 11px; color: var(--gray); letter-spacing: 1px; text-transform: uppercase; margin-top: 4px; }
+  h2 { font-size: 16px; font-weight: 600; color: var(--navy); margin-bottom: 18px; text-align: center; }
+  .field { margin-bottom: 13px; }
+  .field label { display: block; font-size: 11px; font-weight: 600; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .field input { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 6px; font-size: 13px; outline: none; }
+  .field input:focus { border-color: var(--navy2); }
+  .website-field { position: absolute; left: -9999px; top: -9999px; }
+  .consent { display: flex; align-items: flex-start; gap: 8px; margin: 14px 0; }
+  .consent input { margin-top: 3px; flex-shrink: 0; }
+  .consent label { font-size: 11.5px; color: var(--gray); line-height: 1.4; }
+  .consent a { color: var(--navy2); }
+  .btn { width: 100%; padding: 12px; background: var(--navy); color: var(--white); border: none; border-radius: 6px; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .btn:hover { background: var(--navy2); }
+  .btn:disabled { background: #aaa; cursor: not-allowed; }
+  .msg-error { background: #FEE; border: 1px solid #FCC; color: #C00; padding: 10px 14px; border-radius: 6px; font-size: 12px; margin-top: 12px; display: none; text-align: center; }
+  .msg-ok { background: #EAF6EF; border: 1px solid #BEE3CC; color: var(--green); padding: 14px; border-radius: 6px; font-size: 13px; margin-top: 12px; display: none; text-align: center; }
+  .hint { text-align: center; margin-top: 16px; font-size: 11px; color: #aaa; }
+  .hint a { color: var(--navy2); text-decoration: none; font-weight: 600; }
+  .contact { text-align: center; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); font-size: 11px; color: var(--gray); }
+  .contact a { color: var(--navy2); font-weight: 600; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="box">
+    <div class="logo"><span class="brand">SEGTEC</span><span class="sub">Lista de precios</span></div>
+    <h2>Solicitar acceso</h2>
+    <div id="form-wrap">
+      <div class="field"><label>Nombre y apellido</label><input type="text" id="r-name" placeholder="Tu nombre"></div>
+      <div class="field"><label>Empresa (opcional)</label><input type="text" id="r-empresa" placeholder="Nombre de tu empresa"></div>
+      <div class="field"><label>WhatsApp</label><input type="text" id="r-whatsapp" placeholder="Ej: +54 9 11 1234-5678"></div>
+      <div class="field"><label>Email</label><input type="email" id="r-email" placeholder="tu@email.com"></div>
+      <div class="field"><label>Contraseña</label><input type="password" id="r-pass" placeholder="mínimo 8 caracteres"></div>
+      <div class="field website-field"><label>No completar</label><input type="text" id="r-website" tabindex="-1" autocomplete="off"></div>
+      <div class="consent">
+        <input type="checkbox" id="r-consent">
+        <label for="r-consent">Acepto que SEGTEC use mis datos para gestionar mi acceso a la lista de precios y contactarme comercialmente, de acuerdo a la Ley 25.326 de Protección de Datos Personales.</label>
+      </div>
+      <button class="btn" id="r-btn" onclick="doRegister()">Enviar solicitud</button>
+    </div>
+    <div class="msg-error" id="r-error"></div>
+    <div class="msg-ok" id="r-ok"></div>
+    <p class="hint">¿Ya tenés acceso aprobado? <a href="/login.html">Iniciar sesión</a></p>
+    <p class="contact">¿Problemas para registrarte? Escribinos a <a href="https://wa.me/5491155958862" target="_blank">+54 9 11 5595-8862</a></p>
+  </div>
+</div>
+<script>
+async function doRegister() {
+  const name = document.getElementById('r-name').value.trim();
+  const empresa = document.getElementById('r-empresa').value.trim();
+  const whatsapp = document.getElementById('r-whatsapp').value.trim();
+  const email = document.getElementById('r-email').value.trim();
+  const password = document.getElementById('r-pass').value;
+  const website = document.getElementById('r-website').value.trim();
+  const acceptedTerms = document.getElementById('r-consent').checked;
+  const errorBox = document.getElementById('r-error');
+  const okBox = document.getElementById('r-ok');
+  errorBox.style.display = 'none'; okBox.style.display = 'none';
+
+  if (!name || !whatsapp || !email || !password) {
+    errorBox.textContent = 'Completá nombre, WhatsApp, email y contraseña.';
+    errorBox.style.display = 'block';
+    return;
+  }
+  if (password.length < 8) {
+    errorBox.textContent = 'La contraseña debe tener al menos 8 caracteres.';
+    errorBox.style.display = 'block';
+    return;
+  }
+  if (!acceptedTerms) {
+    errorBox.textContent = 'Tenés que aceptar el uso de tus datos para continuar.';
+    errorBox.style.display = 'block';
+    return;
+  }
+
+  const btn = document.getElementById('r-btn');
+  btn.disabled = true; btn.textContent = 'Enviando...';
+
+  try {
+    const res = await fetch('/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, empresa, whatsapp, email, password, acceptedTerms, website }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      errorBox.textContent = data.error || 'No se pudo enviar la solicitud.';
+      errorBox.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Enviar solicitud';
+      return;
+    }
+    document.getElementById('form-wrap').style.display = 'none';
+    okBox.textContent = data.message || 'Solicitud enviada.';
+    okBox.style.display = 'block';
+  } catch (e) {
+    errorBox.textContent = 'No se pudo conectar. Intentá de nuevo.';
+    errorBox.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Enviar solicitud';
+  }
+}
+</script>
+</body>
+</html>

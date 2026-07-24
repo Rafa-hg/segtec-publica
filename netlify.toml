@@ -1,0 +1,96 @@
+[build]
+  functions = "netlify/functions"
+  publish = "public"
+
+[functions]
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/api/register"
+  to = "/.netlify/functions/register"
+  status = 200
+
+[[redirects]]
+  from = "/api/verify-email"
+  to = "/.netlify/functions/verify-email"
+  status = 200
+
+[[redirects]]
+  from = "/api/public-login"
+  to = "/.netlify/functions/public-login"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin-login"
+  to = "/.netlify/functions/admin-login"
+  status = 200
+
+[[redirects]]
+  from = "/api/logout"
+  to = "/.netlify/functions/logout"
+  status = 200
+
+[[redirects]]
+  from = "/api/me"
+  to = "/.netlify/functions/me"
+  status = 200
+
+[[redirects]]
+  from = "/api/forgot-password"
+  to = "/.netlify/functions/forgot-password"
+  status = 200
+
+[[redirects]]
+  from = "/api/reset-password"
+  to = "/.netlify/functions/reset-password"
+  status = 200
+
+[[redirects]]
+  from = "/api/catalog"
+  to = "/.netlify/functions/catalog"
+  status = 200
+
+[[redirects]]
+  from = "/api/quotes-request"
+  to = "/.netlify/functions/quotes-request"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin-registrations-list"
+  to = "/.netlify/functions/admin-registrations-list"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin-registrations-review"
+  to = "/.netlify/functions/admin-registrations-review"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin-quotes-list"
+  to = "/.netlify/functions/admin-quotes-list"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin-catalog-upload-chunk"
+  to = "/.netlify/functions/admin-catalog-upload-chunk"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin-catalog-upload-finish"
+  to = "/.netlify/functions/admin-catalog-upload-finish"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin-catalog-publish"
+  to = "/.netlify/functions/admin-catalog-publish"
+  status = 200
+
+[[redirects]]
+  from = "/"
+  to = "/login.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"

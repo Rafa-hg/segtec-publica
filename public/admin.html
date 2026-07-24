@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>SEGTEC — Panel de administración (Lista pública)</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #1F3864; --navy2: #2E5395; --orange: #E36C09;
+    --white: #FFFFFF; --gray: #595959; --lgray: #F2F5FB; --border: #D0D8E8;
+    --green: #375623; --red: #C00000;
+    --font: 'Inter','Segoe UI',Arial,sans-serif;
+  }
+  html { font-size: 13px; }
+  body { font-family: var(--font); background: var(--lgray); color: #1A1A2E; min-height: 100vh; }
+
+  #login-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh;
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 60%, #3a6bc4 100%); }
+  .login-box { background: var(--white); border-radius: 12px; padding: 48px 44px; width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+  .login-logo { text-align: center; margin-bottom: 32px; }
+  .login-logo .brand { font-size: 22px; font-weight: 800; letter-spacing: 2px; color: var(--navy); display: block; }
+  .login-logo .sub { font-size: 11px; color: var(--gray); letter-spacing: 1px; text-transform: uppercase; margin-top: 4px; }
+  .login-box h2 { font-size: 16px; font-weight: 600; color: var(--navy); margin-bottom: 24px; text-align: center; }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 11px; font-weight: 600; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .field input { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 6px; font-size: 13px; outline: none; }
+  .btn-login { width: 100%; padding: 12px; background: var(--navy); color: var(--white); border: none; border-radius: 6px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 8px; }
+  .btn-login:hover { background: var(--navy2); }
+  .login-error { background: #FEE; border: 1px solid #FCC; color: #C00; padding: 10px 14px; border-radius: 6px; font-size: 12px; margin-top: 12px; display: none; text-align: center; }
+
+  #app { display: none; flex-direction: column; min-height: 100vh; }
+  .topbar { background: var(--navy); color: var(--white); padding: 0 24px; height: 54px; display: flex; align-items: center; justify-content: space-between; }
+  .topbar-brand { font-size: 15px; font-weight: 800; letter-spacing: 1.5px; }
+  .topbar-sub { font-size: 10px; opacity: .6; letter-spacing: 1px; }
+  .btn-logout { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); color: var(--white); padding: 5px 12px; border-radius: 4px; font-size: 11px; cursor: pointer; }
+  .btn-logout:hover { background: rgba(255,255,255,0.22); }
+
+  .tabnav { background: var(--white); border-bottom: 2px solid var(--border); padding: 0 24px; display: flex; gap: 4px; }
+  .tab-btn { padding: 12px 20px; font-size: 12px; font-weight: 600; color: var(--gray); border: none; background: none; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+  .tab-btn.active { color: var(--navy); border-bottom-color: var(--navy); }
+  .badge-count { background: var(--orange); color: #fff; border-radius: 10px; padding: 1px 7px; font-size: 10px; font-weight: 700; margin-left: 6px; }
+
+  .main { padding: 24px; flex: 1; max-width: 1200px; width: 100%; margin: 0 auto; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .subtabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .subtab-btn { padding: 7px 16px; border-radius: 16px; border: 1.5px solid var(--border); background: #fff; color: var(--gray); font-size: 11.5px; font-weight: 600; cursor: pointer; }
+  .subtab-btn.active { background: var(--navy); border-color: var(--navy); color: #fff; }
+
+  .card { background: var(--white); border-radius: 8px; box-shadow: 0 2px 12px rgba(31,56,100,0.10); padding: 20px; margin-bottom: 20px; }
+  .card h3 { font-size: 14px; color: var(--navy); margin-bottom: 14px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead th { background: #EEF2FA; color: var(--navy); font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 8px 10px; border-bottom: 2px solid var(--border); text-align: left; }
+  tbody td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tbody tr:hover { background: #F7F9FF; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 10px; font-weight: 700; color: #fff; }
+  .badge-pending { background: #C77700; } .badge-approved { background: #375623; } .badge-rejected { background: #C00000; }
+  .btn-sm { padding: 5px 12px; border-radius: 5px; border: none; font-size: 11px; font-weight: 700; cursor: pointer; margin-right: 4px; color: #fff; }
+  .btn-approve { background: var(--green); } .btn-reject { background: var(--red); }
+  .link-btn { background: none; border: none; color: var(--navy2); cursor: pointer; font-size: 11px; text-decoration: underline; padding: 0; }
+  .empty { text-align: center; padding: 40px; color: var(--gray); font-size: 12px; }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(10,15,25,0.5); display: none; align-items: center; justify-content: center; z-index: 200; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: #fff; border-radius: 8px; width: 560px; max-width: 92%; max-height: 85vh; overflow-y: auto; padding: 20px; }
+  .modal h3 { color: var(--navy); margin-bottom: 12px; }
+  .modal-close { float: right; background: none; border: none; font-size: 18px; cursor: pointer; color: var(--gray); }
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo"><span class="brand">SEGTEC</span><span class="sub">Panel — Lista pública</span></div>
+    <h2>Acceso admin</h2>
+    <div class="field"><label>Email</label><input type="email" id="a-email" placeholder="tu email" autocomplete="username"></div>
+    <div class="field"><label>Contraseña</label><input type="password" id="a-pass" placeholder="••••••••" autocomplete="current-password"></div>
+    <button class="btn-login" id="a-btn" onclick="doAdminLogin()">Ingresar</button>
+    <div class="login-error" id="a-error">Usuario o contraseña incorrectos.</div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <div><div class="topbar-brand">SEGTEC</div><div class="topbar-sub">Panel — Lista de precios pública</div></div>
+    <button class="btn-logout" onclick="doAdminLogout()">Cerrar sesión</button>
+  </div>
+  <div class="tabnav">
+    <button class="tab-btn active" onclick="switchPanel('solicitudes', this)">Solicitudes de acceso <span class="badge-count" id="pending-count" style="display:none;"></span></button>
+    <button class="tab-btn" onclick="switchPanel('presupuestos', this)">Presupuestos</button>
+    <button class="tab-btn" onclick="switchPanel('catalogo', this)">Catálogo</button>
+  </div>
+
+  <div class="main">
+    <div class="panel active" id="panel-solicitudes">
+      <div class="subtabs">
+        <button class="subtab-btn active" onclick="loadRegistrations('pending', this)">Pendientes</button>
+        <button class="subtab-btn" onclick="loadRegistrations('approved', this)">Aprobados</button>
+        <button class="subtab-btn" onclick="loadRegistrations('rejected', this)">Rechazados</button>
+        <button class="subtab-btn" onclick="loadRegistrations('', this)">Todos</button>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr><th>Nombre</th><th>Empresa</th><th>WhatsApp</th><th>Email</th><th>Solicitado</th><th>Estado</th><th>Acción</th></tr></thead>
+          <tbody id="reg-tbody"></tbody>
+        </table>
+        <div class="empty" id="reg-empty" style="display:none;">No hay solicitudes en este estado.</div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-presupuestos">
+      <div class="card">
+        <h3>Presupuestos solicitados por clientes</h3>
+        <table>
+          <thead><tr><th>Fecha</th><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Cuenta</th><th></th></tr></thead>
+          <tbody id="quotes-tbody"></tbody>
+        </table>
+        <div class="empty" id="quotes-empty" style="display:none;">Todavía no llegaron presupuestos.</div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-catalogo">
+      <div class="card">
+        <h3>Actualizar catálogo</h3>
+        <p style="font-size:12px;color:var(--gray);margin-bottom:14px;">
+          Subí el Excel de "Lista de Difusión SEGTEC" actualizado. Antes de publicar nada,
+          te vamos a mostrar qué cambió respecto al catálogo que está en vivo ahora.
+        </p>
+        <input type="file" id="cat-file" accept=".xlsx">
+        <button class="btn" id="cat-upload-btn" onclick="uploadCatalog()" style="margin-left:10px;">Analizar archivo</button>
+        <div id="cat-upload-status" style="margin-top:12px;font-size:12px;"></div>
+      </div>
+
+      <div class="card" id="cat-diff-card" style="display:none;">
+        <h3>Qué va a cambiar</h3>
+        <div id="cat-diff-body"></div>
+        <div style="margin-top:18px;display:flex;gap:10px;">
+          <button class="btn" onclick="publishCatalog()" id="cat-publish-btn">Confirmar y publicar</button>
+          <button class="btn btn-outline" onclick="cancelCatalogUpload()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>Detalle</h3>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+function fmtMoney(v) { return v==null ? 'Consultar' : '$ ' + Math.round(v).toLocaleString('es-AR'); }
+function fmtDate(iso) { const d = new Date(iso); return d.toLocaleDateString('es-AR') + ' ' + d.toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'}); }
+
+async function doAdminLogin() {
+  const email = document.getElementById('a-email').value.trim();
+  const password = document.getElementById('a-pass').value;
+  const errorBox = document.getElementById('a-error');
+  errorBox.style.display = 'none';
+  const btn = document.getElementById('a-btn');
+  btn.disabled = true; btn.textContent = 'Ingresando...';
+  try {
+    const res = await fetch('/api/admin-login', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(()=>({}));
+      errorBox.textContent = data.error || 'Usuario o contraseña incorrectos.';
+      errorBox.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Ingresar';
+      return;
+    }
+    showApp();
+  } catch (e) {
+    errorBox.textContent = 'No se pudo conectar. Intentá de nuevo.';
+    errorBox.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Ingresar';
+  }
+}
+document.getElementById('a-pass').addEventListener('keydown', e => { if (e.key==='Enter') doAdminLogin(); });
+
+function doAdminLogout() {
+  fetch('/api/logout', { credentials: 'include' }).finally(() => {
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+  });
+}
+
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  loadRegistrations('pending');
+}
+
+window.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const res = await fetch('/api/me', { credentials: 'include' });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.role === 'admin') { showApp(); return; }
+    }
+  } catch (e) {}
+});
+
+function switchPanel(name, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tabnav .tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'presupuestos') loadQuotes();
+}
+
+async function loadRegistrations(status, btn) {
+  if (btn) {
+    document.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  const params = status ? ('?status=' + status) : '';
+  const res = await fetch('/api/admin-registrations-list' + params, { credentials: 'include' });
+  const tbody = document.getElementById('reg-tbody');
+  const empty = document.getElementById('reg-empty');
+  tbody.innerHTML = '';
+  if (!res.ok) { empty.style.display = 'block'; return; }
+  const data = await res.json();
+  if (!data.registrations.length) { empty.style.display = 'block'; }
+  else { empty.style.display = 'none'; }
+  data.registrations.forEach(r => {
+    const tr = document.createElement('tr');
+    const badgeClass = r.status === 'pending' ? 'badge-pending' : (r.status === 'approved' ? 'badge-approved' : 'badge-rejected');
+    const badgeText = r.status === 'pending' ? 'Pendiente' : (r.status === 'approved' ? 'Aprobado' : 'Rechazado');
+    let actions = '—';
+    if (r.status === 'pending') {
+      actions = '<button class="btn-sm btn-approve" onclick="review('+r.id+',\'approve\')">Aprobar</button>'+
+                '<button class="btn-sm btn-reject" onclick="review('+r.id+',\'reject\')">Rechazar</button>';
+    }
+    tr.innerHTML =
+      '<td>'+r.name+'</td><td>'+(r.empresa||'—')+'</td>'+
+      '<td>'+(r.whatsapp?('<a href="https://wa.me/'+r.whatsapp.replace(/[^0-9]/g,'')+'" target="_blank">'+r.whatsapp+'</a>'):'—')+'</td>'+
+      '<td>'+r.email+'</td><td>'+new Date(r.created_at).toLocaleDateString('es-AR')+'</td>'+
+      '<td><span class="badge '+badgeClass+'">'+badgeText+'</span></td>'+
+      '<td>'+actions+'</td>';
+    tbody.appendChild(tr);
+  });
+  updatePendingCount();
+}
+
+async function updatePendingCount() {
+  const res = await fetch('/api/admin-registrations-list?status=pending', { credentials: 'include' });
+  if (!res.ok) return;
+  const data = await res.json();
+  const el = document.getElementById('pending-count');
+  if (data.registrations.length > 0) { el.style.display = 'inline-block'; el.textContent = data.registrations.length; }
+  else { el.style.display = 'none'; }
+}
+
+async function review(id, action) {
+  if (action === 'reject' && !confirm('¿Rechazar esta solicitud? No se le va a avisar al cliente.')) return;
+  await fetch('/api/admin-registrations-review', {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, action }),
+  });
+  const activeBtn = document.querySelector('.subtab-btn.active');
+  const activeStatus = activeBtn && activeBtn.textContent.includes('Pendientes') ? 'pending' : (activeBtn && activeBtn.textContent.includes('Aprobados') ? 'approved' : (activeBtn && activeBtn.textContent.includes('Rechazados') ? 'rejected' : ''));
+  loadRegistrations(activeStatus);
+}
+
+async function loadQuotes() {
+  const res = await fetch('/api/admin-quotes-list', { credentials: 'include' });
+  const tbody = document.getElementById('quotes-tbody');
+  const empty = document.getElementById('quotes-empty');
+  tbody.innerHTML = '';
+  if (!res.ok) { empty.style.display = 'block'; return; }
+  const data = await res.json();
+  if (!data.quotes.length) { empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  data.quotes.forEach(q => {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>'+fmtDate(q.created_at)+'</td><td>'+q.nombre+'</td>'+
+      '<td>'+(q.telefono?('<a href="https://wa.me/'+q.telefono.replace(/[^0-9]/g,'')+'" target="_blank">'+q.telefono+'</a>'):'—')+'</td>'+
+      '<td>'+(q.email||'—')+'</td>'+
+      '<td>'+(q.user_name?q.user_name+' ('+q.user_email+')':'—')+'</td>'+
+      '<td><button class="link-btn" onclick="viewQuote('+q.id+')">Ver productos</button></td>';
+    tbody.appendChild(tr);
+  });
+}
+
+async function viewQuote(id) {
+  const res = await fetch('/api/admin-quotes-list?id=' + id, { credentials: 'include' });
+  if (!res.ok) return;
+  const data = await res.json();
+  const q = data.quote;
+  const items = typeof q.items_json === 'string' ? JSON.parse(q.items_json) : q.items_json;
+  let html = '<p><b>Cliente:</b> '+q.nombre+' — '+(q.telefono||'—')+' — '+(q.email||'—')+'</p>';
+  if (q.comentario) html += '<p><b>Comentario:</b> '+q.comentario+'</p>';
+  html += '<p><b>Fecha:</b> '+fmtDate(q.created_at)+'</p><table><thead><tr><th>Marca</th><th>Producto</th><th>Código</th><th>Precio</th></tr></thead><tbody>';
+  items.forEach(it => {
+    html += '<tr><td>'+(it.marca||'')+'</td><td>'+(it.desc||'')+'</td><td>'+(it.codigo||'')+'</td><td>'+fmtMoney(it.precio)+'</td></tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('show');
+}
+
+function closeModal() { document.getElementById('modal-overlay').classList.remove('show'); }
+
+let lastPendingId = null;
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+const SHEET_LABELS = { CORREDIZOS: 'Corredizos', LEVADIZOS: 'Levadizos', PIVOTANTES: 'Pivotantes', ACCESORIOS: 'Accesorios' };
+const CHUNK_SIZE_BYTES = 3 * 1024 * 1024; // 3MB por parte (~4MB ya en base64, con margen bajo el límite de Netlify)
+
+async function uploadCatalog() {
+  const fileInput = document.getElementById('cat-file');
+  const statusEl = document.getElementById('cat-upload-status');
+  const file = fileInput.files[0];
+  if (!file) { statusEl.textContent = 'Elegí un archivo .xlsx primero.'; statusEl.style.color = '#C00'; return; }
+
+  const btn = document.getElementById('cat-upload-btn');
+  btn.disabled = true;
+  statusEl.style.color = 'var(--gray)';
+
+  try {
+    const fullBase64 = await fileToBase64(file);
+    const totalChunks = Math.ceil(fullBase64.length / (CHUNK_SIZE_BYTES * 4 / 3));
+    const uploadId = 'up_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+    const chunkCharSize = Math.ceil(fullBase64.length / totalChunks);
+
+    for (let i = 0; i < totalChunks; i++) {
+      btn.textContent = 'Subiendo... (' + (i + 1) + '/' + totalChunks + ')';
+      statusEl.textContent = 'Subiendo parte ' + (i + 1) + ' de ' + totalChunks + '...';
+      const chunkData = fullBase64.slice(i * chunkCharSize, (i + 1) * chunkCharSize);
+      const res = await fetch('/api/admin-catalog-upload-chunk', {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uploadId, chunkIndex: i, chunkData, filename: file.name }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Falló la subida de una parte del archivo.');
+      }
+    }
+
+    btn.textContent = 'Analizando archivo...';
+    statusEl.textContent = 'Todas las partes subidas, analizando el contenido...';
+    const finishRes = await fetch('/api/admin-catalog-upload-finish', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uploadId, filename: file.name }),
+    });
+    const data = await finishRes.json().catch(() => ({}));
+    if (!finishRes.ok) {
+      statusEl.textContent = data.error || 'No se pudo procesar el archivo.';
+      statusEl.style.color = '#C00';
+      btn.disabled = false; btn.textContent = 'Analizar archivo';
+      return;
+    }
+
+    statusEl.textContent = '';
+    lastPendingId = data.pendingId;
+    renderDiff(data.diff, data.hasCurrentCatalog);
+    btn.disabled = false; btn.textContent = 'Analizar archivo';
+  } catch (e) {
+    statusEl.textContent = e.message || 'No se pudo conectar. Probá de nuevo.';
+    statusEl.style.color = '#C00';
+    btn.disabled = false; btn.textContent = 'Analizar archivo';
+  }
+}
+
+function renderDiff(diff, hasCurrentCatalog) {
+  const card = document.getElementById('cat-diff-card');
+  const body = document.getElementById('cat-diff-body');
+  let html = '';
+  if (!hasCurrentCatalog) {
+    html += '<p style="background:#EAF2FF;padding:10px 14px;border-radius:6px;font-size:12px;margin-bottom:14px;">Todavía no hay ningún catálogo publicado — esta va a ser la primera versión en vivo.</p>';
+  }
+  for (const [sn, d] of Object.entries(diff)) {
+    html += '<h4 style="margin:16px 0 8px;color:var(--navy);font-size:13px;">'+SHEET_LABELS[sn]+' — '+d.totalAntes+' → '+d.totalAhora+' productos</h4>';
+    if (!d.nuevos.length && !d.eliminados.length && !d.precioCambiado.length && !d.fotoAgregada.length && !d.fotoQuitada.length) {
+      html += '<p style="font-size:12px;color:var(--gray);">Sin cambios en esta hoja.</p>';
+      continue;
+    }
+    if (d.nuevos.length) html += diffList('Productos nuevos', d.nuevos, 'var(--green)');
+    if (d.eliminados.length) html += diffList('Productos que ya no están', d.eliminados, 'var(--red)');
+    if (d.precioCambiado.length) html += diffPrecio(d.precioCambiado);
+    if (d.fotoAgregada.length) html += diffList('Ahora tienen foto', d.fotoAgregada, 'var(--green)');
+    if (d.fotoQuitada.length) html += diffList('Perdieron la foto', d.fotoQuitada, 'var(--red)');
+  }
+  body.innerHTML = html;
+  card.style.display = 'block';
+  card.scrollIntoView({ behavior: 'smooth' });
+}
+
+function diffList(title, items, color) {
+  let html = '<details style="margin-bottom:8px;"><summary style="font-size:12px;font-weight:600;color:'+color+';cursor:pointer;">'+title+' ('+items.length+')</summary><ul style="font-size:11.5px;color:var(--gray);margin:6px 0 0 18px;">';
+  items.slice(0, 50).forEach(it => { html += '<li>'+it.codigo+' — '+(it.desc||'')+'</li>'; });
+  if (items.length > 50) html += '<li>... y '+(items.length-50)+' más</li>';
+  html += '</ul></details>';
+  return html;
+}
+
+function diffPrecio(items) {
+  let html = '<details style="margin-bottom:8px;"><summary style="font-size:12px;font-weight:600;color:var(--navy);cursor:pointer;">Precios que cambiaron ('+items.length+')</summary><table style="margin-top:6px;"><thead><tr><th>Código</th><th>Producto</th><th>Antes</th><th>Ahora</th></tr></thead><tbody>';
+  items.slice(0, 50).forEach(it => {
+    html += '<tr><td>'+it.codigo+'</td><td>'+(it.desc||'')+'</td><td>'+fmtMoney(it.antes)+'</td><td>'+fmtMoney(it.ahora)+'</td></tr>';
+  });
+  html += '</tbody></table>';
+  if (items.length > 50) html += '<p style="font-size:11px;color:var(--gray);margin-top:4px;">... y '+(items.length-50)+' más</p>';
+  html += '</details>';
+  return html;
+}
+
+async function publishCatalog() {
+  if (!lastPendingId) return;
+  if (!confirm('¿Publicar este catálogo? Va a reemplazar lo que ven tus clientes ahora mismo.')) return;
+  const btn = document.getElementById('cat-publish-btn');
+  btn.disabled = true; btn.textContent = 'Publicando...';
+  try {
+    const res = await fetch('/api/admin-catalog-publish', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pendingId: lastPendingId }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { alert(data.error || 'No se pudo publicar.'); btn.disabled = false; btn.textContent = 'Confirmar y publicar'; return; }
+    alert('Catálogo publicado. Ya está en vivo.');
+    cancelCatalogUpload();
+  } catch (e) {
+    alert('No se pudo conectar. Probá de nuevo.');
+    btn.disabled = false; btn.textContent = 'Confirmar y publicar';
+  }
+}
+
+function cancelCatalogUpload() {
+  lastPendingId = null;
+  document.getElementById('cat-diff-card').style.display = 'none';
+  document.getElementById('cat-file').value = '';
+  document.getElementById('cat-upload-status').textContent = '';
+}
+</script>
+</body>
+</html>

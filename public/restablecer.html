@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>SEGTEC — Nueva contraseña</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --navy: #1F3864; --navy2: #2E5395; --white: #FFFFFF; --gray: #595959; --border: #D0D8E8; --green: #2F7A4F; --font: 'Inter','Segoe UI',Arial,sans-serif; }
+  html { font-size: 13px; }
+  body { font-family: var(--font); min-height: 100vh; }
+  .screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 60%, #3a6bc4 100%); padding: 20px; }
+  .box { background: var(--white); border-radius: 12px; padding: 40px; width: 400px; max-width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+  .logo { text-align: center; margin-bottom: 20px; }
+  .logo .brand { font-size: 22px; font-weight: 800; letter-spacing: 2px; color: var(--navy); display: block; }
+  h2 { font-size: 15px; font-weight: 600; color: var(--navy); margin-bottom: 18px; text-align: center; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 11px; font-weight: 600; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .field input { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 6px; font-size: 13px; outline: none; }
+  .btn { width: 100%; padding: 12px; background: var(--navy); color: var(--white); border: none; border-radius: 6px; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .btn:disabled { background: #aaa; cursor: not-allowed; }
+  .msg-ok { background: #EAF6EF; border: 1px solid #BEE3CC; color: var(--green); padding: 14px; border-radius: 6px; font-size: 12.5px; margin-top: 12px; display: none; text-align: center; }
+  .msg-error { background: #FEE; border: 1px solid #FCC; color: #C00; padding: 10px 14px; border-radius: 6px; font-size: 12px; margin-top: 12px; display: none; text-align: center; }
+  .hint { text-align: center; margin-top: 16px; font-size: 11px; }
+  .hint a { color: var(--navy2); text-decoration: none; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="box">
+    <div class="logo"><span class="brand">SEGTEC</span></div>
+    <h2>Elegí tu nueva contraseña</h2>
+    <div id="form-wrap">
+      <div class="field"><label>Nueva contraseña</label><input type="password" id="p-pass" placeholder="mínimo 8 caracteres"></div>
+      <div class="field"><label>Repetir contraseña</label><input type="password" id="p-pass2" placeholder="repetí la contraseña"></div>
+      <button class="btn" id="p-btn" onclick="doReset()">Guardar contraseña</button>
+    </div>
+    <div class="msg-ok" id="p-ok"></div>
+    <div class="msg-error" id="p-error"></div>
+    <p class="hint"><a href="/login.html">Volver a iniciar sesión</a></p>
+  </div>
+</div>
+<script>
+async function doReset() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+  const pass = document.getElementById('p-pass').value;
+  const pass2 = document.getElementById('p-pass2').value;
+  const okBox = document.getElementById('p-ok');
+  const errorBox = document.getElementById('p-error');
+  okBox.style.display = 'none'; errorBox.style.display = 'none';
+
+  if (!token) { errorBox.textContent = 'Link inválido, pedí uno nuevo.'; errorBox.style.display = 'block'; return; }
+  if (pass.length < 8) { errorBox.textContent = 'La contraseña debe tener al menos 8 caracteres.'; errorBox.style.display = 'block'; return; }
+  if (pass !== pass2) { errorBox.textContent = 'Las contraseñas no coinciden.'; errorBox.style.display = 'block'; return; }
+
+  const btn = document.getElementById('p-btn');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  try {
+    const res = await fetch('/api/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, password: pass }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      errorBox.textContent = data.error || 'No se pudo actualizar la contraseña.';
+      errorBox.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Guardar contraseña';
+      return;
+    }
+    document.getElementById('form-wrap').style.display = 'none';
+    okBox.textContent = data.message || 'Contraseña actualizada.';
+    okBox.style.display = 'block';
+  } catch (e) {
+    errorBox.textContent = 'No se pudo conectar. Intentá de nuevo.';
+    errorBox.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Guardar contraseña';
+  }
+}
+</script>
+</body>
+</html>

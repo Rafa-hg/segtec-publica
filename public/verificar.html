@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>SEGTEC — Confirmar email</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --navy: #1F3864; --navy2: #2E5395; --white: #FFFFFF; --gray: #595959; --border: #D0D8E8; --red:#C00; --green: #2F7A4F; --font: 'Inter','Segoe UI',Arial,sans-serif; }
+  html { font-size: 13px; }
+  body { font-family: var(--font); min-height: 100vh; }
+  .screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 60%, #3a6bc4 100%); padding: 20px; }
+  .box { background: var(--white); border-radius: 12px; padding: 40px; width: 420px; max-width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.25); text-align: center; }
+  .logo .brand { font-size: 22px; font-weight: 800; letter-spacing: 2px; color: var(--navy); display: block; margin-bottom: 20px; }
+  .status { font-size: 14px; color: var(--gray); margin: 16px 0; }
+  .status.ok { color: var(--green); }
+  .status.error { color: var(--red); }
+  .btn { display:inline-block; margin-top: 10px; padding: 11px 22px; background: var(--navy); color: var(--white); border: none; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration:none; }
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="box">
+    <div class="logo"><span class="brand">SEGTEC</span></div>
+    <div class="status" id="status">Confirmando tu email…</div>
+    <a class="btn" id="btn-login" href="/login.html" style="display:none;">Ir a iniciar sesión</a>
+  </div>
+</div>
+<script>
+async function verify() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+  const statusEl = document.getElementById('status');
+  if (!token) { statusEl.textContent = 'Falta el token de confirmación.'; statusEl.className = 'status error'; return; }
+  try {
+    const res = await fetch('/api/verify-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      statusEl.textContent = data.error || 'No se pudo confirmar el email.';
+      statusEl.className = 'status error';
+      return;
+    }
+    statusEl.textContent = data.message || 'Email confirmado.';
+    statusEl.className = 'status ok';
+    document.getElementById('btn-login').style.display = 'inline-block';
+  } catch (e) {
+    statusEl.textContent = 'No se pudo conectar. Intentá de nuevo.';
+    statusEl.className = 'status error';
+  }
+}
+verify();
+</script>
+</body>
+</html>
