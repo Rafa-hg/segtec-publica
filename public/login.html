@@ -81,7 +81,7 @@ async function doLogin() {
 }
 document.getElementById('l-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 
-fetch('/api/me', { credentials: 'include' }).then(async (res) => {
+fetch('/api/me', { credentials: 'include', cache: 'no-store' }).then(async (res) => {
   if (res.ok) {
     const data = await res.json();
     if (data.role === 'public') window.location.href = '/catalog.html';
