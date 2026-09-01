@@ -40,6 +40,9 @@ exports.handler = async (event) => {
   if (user.status === 'rejected') {
     return json(401, { error: 'Usuario o contraseña incorrectos' });
   }
+  if (user.status === 'blocked') {
+    return json(403, { error: 'Tu acceso fue bloqueado. Contactanos si creés que es un error.' });
+  }
 
   const ok = await verifyPassword(password, user.password_hash);
   if (!ok) {

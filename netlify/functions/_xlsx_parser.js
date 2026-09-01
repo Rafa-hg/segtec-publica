@@ -1,15 +1,93 @@
 const ExcelJS = require('exceljs');
 const { Jimp } = require('jimp');
 
-const SHEET_CONFIGS = {
-  CORREDIZOS: { cols: { marca: 'B', codigo: 'C', desc: 'D', tec: 'E', peso: 'F', vel: 'G', accion: 'H', iva: 'I', precio: 'J' } },
-  LEVADIZOS: { cols: { marca: 'B', codigo: 'C', desc: 'D', tec: 'E', peso: 'F', vel: 'G', accion: 'H', iva: 'I', precio: 'J' } },
-  PIVOTANTES: { cols: { marca: 'B', codigo: 'C', desc: 'D', tec: 'E', peso: 'F', vel: 'G', accion: 'H', iva: 'I', precio: 'J' } },
-  ACCESORIOS: { cols: { marca: 'B', codigo: 'C', desc: 'D', iva: 'E', precio: 'F' } },
+// Mapea el TEXTO del encabezado (fila 3) a la clave interna que usa el resto
+// del sistema. No importa en qué columna esté físicamente: se busca por título.
+// Usamos includes() en mayúsculas sin acentos para tolerar pequeñas variaciones
+// (saltos de línea dentro de la celda, "IVA %" vs "IVA", etc).
+const HEADER_ALIASES = {
+  marca: ['MARCA'],
+  codigo: ['CODIGO'],
+  desc: ['DESCRIPCION'],
+  tec: ['TECNOLOGIA'],
+  peso: ['PESO'],
+  vel: ['VEL'],
+  accion: ['CREMALLERA', 'CADENA', 'TAMANO', 'ACCIONADOR', 'ANCHO'],
+  iva: ['IVA'],
+  gremio: ['PRECIO GREMIO', 'GREMIO'],
+  precio: ['PRECIO PUBLICO', 'PRECIO ML'],
 };
 
+// Por hoja, qué claves de HEADER_ALIASES son obligatorias/esperadas (se usa
+// solo para loguear si falta alguna; el parser sigue funcionando igual con
+// las que sí encuentre).
+const SHEET_KEYS = {
+  CORREDIZOS: ['marca', 'codigo', 'desc', 'tec', 'peso', 'vel', 'accion', 'iva', 'gremio', 'precio'],
+  LEVADIZOS: ['marca', 'codigo', 'desc', 'tec', 'peso', 'vel', 'accion', 'iva', 'gremio', 'precio'],
+  PIVOTANTES: ['marca', 'codigo', 'desc', 'tec', 'peso', 'vel', 'accion', 'iva', 'gremio', 'precio'],
+  ACCESORIOS: ['marca', 'codigo', 'desc', 'iva', 'gremio', 'precio'],
+};
+
+const HEADER_ROW = 3;
 const OVERFLOW_THRESHOLD_EMU = 400000;
 const IMG_MAX_WIDTH = 220;
+
+const normalizeHeader = (v) => {
+  if (v === null || v === undefined) return '';
+  return String(v)
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // saca acentos
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toUpperCase();
+};
+
+/**
+ * Recorre la fila de encabezados (HEADER_ROW) de una hoja y arma un mapa
+ * { claveInterna -> numeroDeColumna } buscando cada alias dentro del texto
+ * de cada celda. Si dos encabezados matchean el mismo alias (p.ej. "GREMIO"
+ * podría matchear tanto la columna del producto como una de benchmark), se
+ * queda con la PRIMERA coincidencia de izquierda a derecha.
+ */
+function detectColumns(ws, sheetName) {
+  const row = ws.getRow(HEADER_ROW);
+  const headerTexts = [];
+  for (let c = 1; c <= ws.columnCount; c++) {
+    headerTexts.push(normalizeHeader(row.getCell(c).value));
+  }
+
+  const cols = {};
+  for (const [key, aliases] of Object.entries(HEADER_ALIASES)) {
+    let found = null;
+    for (let c = 0; c < headerTexts.length; c++) {
+      const text = headerTexts[c];
+      if (!text) continue;
+      if (aliases.some((alias) => text.includes(alias))) {
+        found = c + 1; // 1-indexado
+        break;
+      }
+    }
+    if (found) cols[key] = found;
+  }
+
+  // Caso especial de ACCESORIOS: el encabezado "CATEGORÍA" (columna A) no
+  // tiene un título propio de "MARCA" para la marca de cada producto — el
+  // dato vive en la columna inmediatamente a la derecha del encabezado
+  // "CATEGORÍA". Si no encontramos "MARCA" por título, la inferimos así.
+  if (!cols.marca) {
+    const catCol = headerTexts.findIndex((t) => t.includes('CATEGORIA'));
+    if (catCol !== -1) cols.marca = catCol + 2; // +1 (1-indexado) +1 (columna siguiente)
+  }
+
+  const expected = SHEET_KEYS[sheetName] || [];
+  const missing = expected.filter((k) => !cols[k]);
+  if (missing.length) {
+    // No tiramos error: seguimos con lo que se pudo detectar, pero queda
+    // registrado en stats para que se vea en el panel de admin.
+    cols.__missing = missing;
+  }
+  return cols;
+}
 
 // Pares de productos que, por decisión de SEGTEC, comparten la misma foto porque
 // uno de los dos no tiene fotografía propia en el archivo (mismo motor/perfil,
@@ -19,8 +97,6 @@ const SHARED_PHOTO_PAIRS = [
   { from: 'P05186', to: 'F05180' },   // Cremallera Gold Industrial -> Domiciliar 1,00 MT
   { from: 'E01100301', to: 'E01100300' }, // BV Home Robust 2,00mts -> 1,50mts
 ];
-
-const COL_LETTER_TO_NUM = (letter) => letter.charCodeAt(0) - 64; // A=1, B=2...
 
 async function resizeImageToBase64(buffer) {
   try {
@@ -80,15 +156,24 @@ async function parseCatalogXlsx(fileBuffer) {
 
   const result = {};
   const stats = {};
+  const missingColsBySheet = {};
 
-  for (const [sheetName, cfg] of Object.entries(SHEET_CONFIGS)) {
+  for (const sheetName of Object.keys(SHEET_KEYS)) {
     const ws = wb.getWorksheet(sheetName);
     if (!ws) {
       stats[sheetName] = { error: 'La hoja no existe en el archivo' };
       continue;
     }
 
-    const codigoCol = COL_LETTER_TO_NUM(cfg.cols.codigo);
+    const cols = detectColumns(ws, sheetName);
+    if (!cols.codigo) {
+      // Sin columna CÓDIGO no hay forma de identificar productos: se aborta
+      // esta hoja puntual (las demás hojas se siguen procesando normalmente).
+      stats[sheetName] = { error: 'No se encontró la columna "CÓDIGO" en la fila de encabezados (fila 3)' };
+      continue;
+    }
+    if (cols.__missing) missingColsBySheet[sheetName] = cols.__missing;
+    const codigoCol = cols.codigo;
     const isSectionRow = (row) => {
       const aVal = row.getCell(1).value;
       const bVal = row.getCell(2).value;
@@ -120,8 +205,9 @@ async function parseCatalogXlsx(fileBuffer) {
       if (codeVal === 'CÓDIGO') continue;
       if (codeVal === null || codeVal === undefined) continue;
       const item = { type: 'product' };
-      for (const [key, colLetter] of Object.entries(cfg.cols)) {
-        const cell = row.getCell(COL_LETTER_TO_NUM(colLetter));
+      for (const [key, colNum] of Object.entries(cols)) {
+        if (key === '__missing') continue;
+        const cell = row.getCell(colNum);
         item[key] = cell.value === null || cell.value === undefined ? null : cell.value;
       }
       if (imgMap.has(r)) {
@@ -145,9 +231,13 @@ async function parseCatalogXlsx(fileBuffer) {
   applySharedPhotoOverrides(result);
 
   for (const [sheetName, items] of Object.entries(result)) {
+    if (stats[sheetName] && stats[sheetName].error) continue; // hoja que falló antes
     const nProd = items.filter((x) => x.type === 'product').length;
     const nImg = items.filter((x) => x.type === 'product' && x.img).length;
     stats[sheetName] = { productos: nProd, conImagen: nImg };
+    if (missingColsBySheet[sheetName] && missingColsBySheet[sheetName].length) {
+      stats[sheetName].columnasNoEncontradas = missingColsBySheet[sheetName];
+    }
   }
 
   return { catalog: result, stats };

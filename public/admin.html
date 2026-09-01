@@ -58,9 +58,10 @@
   tbody td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
   tbody tr:hover { background: #F7F9FF; }
   .badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 10px; font-weight: 700; color: #fff; }
-  .badge-pending { background: #C77700; } .badge-approved { background: #375623; } .badge-rejected { background: #C00000; }
+  .badge-pending { background: #C77700; } .badge-approved { background: #375623; } .badge-rejected { background: #C00000; } .badge-blocked { background: #595959; }
   .btn-sm { padding: 5px 12px; border-radius: 5px; border: none; font-size: 11px; font-weight: 700; cursor: pointer; margin-right: 4px; color: #fff; }
   .btn-approve { background: var(--green); } .btn-reject { background: var(--red); }
+  .btn-block { background: #7a5c00; } .btn-unblock { background: #375623; } .btn-delete { background: #660000; }
   .link-btn { background: none; border: none; color: var(--navy2); cursor: pointer; font-size: 11px; text-decoration: underline; padding: 0; }
   .empty { text-align: center; padding: 40px; color: var(--gray); font-size: 12px; }
 
@@ -101,6 +102,7 @@
         <button class="subtab-btn active" onclick="loadRegistrations('pending', this)">Pendientes</button>
         <button class="subtab-btn" onclick="loadRegistrations('approved', this)">Aprobados</button>
         <button class="subtab-btn" onclick="loadRegistrations('rejected', this)">Rechazados</button>
+        <button class="subtab-btn" onclick="loadRegistrations('blocked', this)">Bloqueados</button>
         <button class="subtab-btn" onclick="loadRegistrations('', this)">Todos</button>
       </div>
       <div class="card">
@@ -235,13 +237,22 @@ async function loadRegistrations(status, btn) {
   else { empty.style.display = 'none'; }
   data.registrations.forEach(r => {
     const tr = document.createElement('tr');
-    const badgeClass = r.status === 'pending' ? 'badge-pending' : (r.status === 'approved' ? 'badge-approved' : 'badge-rejected');
-    const badgeText = r.status === 'pending' ? 'Pendiente' : (r.status === 'approved' ? 'Aprobado' : 'Rechazado');
-    let actions = '—';
+    const badgeMap = { pending: ['badge-pending','Pendiente'], approved: ['badge-approved','Aprobado'], rejected: ['badge-rejected','Rechazado'], blocked: ['badge-blocked','Bloqueado'] };
+    const [badgeClass, badgeText] = badgeMap[r.status] || ['badge-rejected', r.status];
+    let actions = '';
     if (r.status === 'pending') {
       actions = '<button class="btn-sm btn-approve" onclick="review('+r.id+',\'approve\')">Aprobar</button>'+
                 '<button class="btn-sm btn-reject" onclick="review('+r.id+',\'reject\')">Rechazar</button>';
+    } else if (r.status === 'approved') {
+      actions = '<button class="btn-sm btn-block" onclick="review('+r.id+',\'block\')">Bloquear</button>';
+    } else if (r.status === 'blocked') {
+      actions = '<button class="btn-sm btn-unblock" onclick="review('+r.id+',\'unblock\')">Desbloquear</button>';
     }
+    // Eliminar queda disponible siempre (salvo pendientes, que se aprueban/rechazan primero).
+    if (r.status !== 'pending') {
+      actions += '<button class="btn-sm btn-delete" onclick="review('+r.id+',\'delete\')">Eliminar</button>';
+    }
+    if (!actions) actions = '—';
     tr.innerHTML =
       '<td>'+r.name+'</td><td>'+(r.empresa||'—')+'</td>'+
       '<td>'+(r.whatsapp?('<a href="https://wa.me/'+r.whatsapp.replace(/[^0-9]/g,'')+'" target="_blank">'+r.whatsapp+'</a>'):'—')+'</td>'+
@@ -263,14 +274,25 @@ async function updatePendingCount() {
 }
 
 async function review(id, action) {
-  if (action === 'reject' && !confirm('¿Rechazar esta solicitud? No se le va a avisar al cliente.')) return;
-  await fetch('/api/admin-registrations-review', {
+  const confirmMsgs = {
+    reject: '¿Rechazar esta solicitud? No se le va a avisar al cliente.',
+    block: '¿Bloquear a este usuario? No va a poder iniciar sesión hasta que lo desbloquees.',
+    delete: '¿Eliminar esta cuenta definitivamente? Esta acción no se puede deshacer.',
+  };
+  if (confirmMsgs[action] && !confirm(confirmMsgs[action])) return;
+
+  const res = await fetch('/api/admin-registrations-review', {
     method: 'POST', credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id, action }),
   });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    alert(data.error || 'No se pudo completar la acción.');
+  }
   const activeBtn = document.querySelector('.subtab-btn.active');
-  const activeStatus = activeBtn && activeBtn.textContent.includes('Pendientes') ? 'pending' : (activeBtn && activeBtn.textContent.includes('Aprobados') ? 'approved' : (activeBtn && activeBtn.textContent.includes('Rechazados') ? 'rejected' : ''));
+  const label = activeBtn ? activeBtn.textContent : '';
+  const activeStatus = label.includes('Pendientes') ? 'pending' : (label.includes('Aprobados') ? 'approved' : (label.includes('Rechazados') ? 'rejected' : (label.includes('Bloqueados') ? 'blocked' : '')));
   loadRegistrations(activeStatus);
 }
 

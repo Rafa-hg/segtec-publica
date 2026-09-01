@@ -120,14 +120,18 @@ async function main() {
   assert('login del cliente aprobado ok', r7.statusCode === 200, JSON.parse(r7.body));
   const clientCookie = extractCookie(r7.headers['Set-Cookie']);
 
-  // 8. Cliente pide el catálogo
+  // 8. Cliente pide el catálogo, hoja por hoja
   const catalog = require('../netlify/functions/catalog');
-  const r8 = await catalog.handler(mockEvent({ method: 'GET', cookieHeader: clientCookie }));
+  const r8 = await catalog.handler(mockEvent({ method: 'GET', cookieHeader: clientCookie, query: { sheet: 'CORREDIZOS' } }));
   const catBody = JSON.parse(r8.body);
-  assert('catálogo accesible logueado', r8.statusCode === 200 && Array.isArray(catBody.CORREDIZOS), { productos: catBody.CORREDIZOS ? catBody.CORREDIZOS.length : 0 });
+  assert('catálogo accesible logueado', r8.statusCode === 200 && Array.isArray(catBody), { productos: catBody.length });
+
+  // 8a2. Pedir sin indicar la hoja da un error claro (evita el 502 por respuesta demasiado grande)
+  const r8a2 = await catalog.handler(mockEvent({ method: 'GET', cookieHeader: clientCookie, query: {} }));
+  assert('catálogo exige indicar la hoja', r8a2.statusCode === 400);
 
   // 8b. Sin sesión, el catálogo NO se entrega
-  const r8b = await catalog.handler(mockEvent({ method: 'GET', cookieHeader: '' }));
+  const r8b = await catalog.handler(mockEvent({ method: 'GET', cookieHeader: '', query: { sheet: 'CORREDIZOS' } }));
   assert('catálogo bloqueado sin sesión', r8b.statusCode === 401);
 
   // 9. Cliente pide un presupuesto
@@ -208,7 +212,7 @@ async function main() {
 
   // 14. Flujo de actualización de catálogo: subir por partes, ver diff, publicar
   const fs = require('fs');
-  const xlsxPath = '/mnt/user-data/uploads/Lista_Difusio_n_SEGTEC__2_.xlsx';
+  const xlsxPath = '/mnt/user-data/uploads/Lista_Difusio_n_SEGTEC__3_.xlsx';
   if (fs.existsSync(xlsxPath)) {
     const uploadChunk = require('../netlify/functions/admin-catalog-upload-chunk');
     const uploadFinish = require('../netlify/functions/admin-catalog-upload-finish');
@@ -249,9 +253,9 @@ async function main() {
     assert('finish sin partes previas da error controlado', r14c.statusCode === 404);
 
     // 14d. El catálogo público TODAVÍA sirve el bundle viejo (no se publicó nada aún)
-    const beforePublish = await catalogFn.handler(mockEvent({ method: 'GET', cookieHeader: clientCookie }));
+    const beforePublish = await catalogFn.handler(mockEvent({ method: 'GET', cookieHeader: clientCookie, query: { sheet: 'CORREDIZOS' } }));
     const beforeBody = JSON.parse(beforePublish.body);
-    assert('catálogo público sin cambios antes de publicar', Array.isArray(beforeBody.CORREDIZOS));
+    assert('catálogo público sin cambios antes de publicar', Array.isArray(beforeBody));
 
     // 14e. Publicar
     const r14e = await catalogPublish.handler(mockEvent({
@@ -260,9 +264,9 @@ async function main() {
     assert('publicación de catálogo ok', r14e.statusCode === 200, JSON.parse(r14e.body));
 
     // 14f. Ahora el catálogo público sirve la versión recién publicada
-    const afterPublish = await catalogFn.handler(mockEvent({ method: 'GET', cookieHeader: clientCookie }));
+    const afterPublish = await catalogFn.handler(mockEvent({ method: 'GET', cookieHeader: clientCookie, query: { sheet: 'CORREDIZOS' } }));
     const afterBody = JSON.parse(afterPublish.body);
-    const nCorredizos = afterBody.CORREDIZOS.filter(x => x.type === 'product').length;
+    const nCorredizos = afterBody.filter(x => x.type === 'product').length;
     assert('catálogo público refleja la nueva publicación', nCorredizos === 66, { productos: nCorredizos });
 
     // 14g. Publicar de nuevo el mismo archivo (otro uploadId): el diff no debería mostrar cambios

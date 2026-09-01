@@ -41,6 +41,9 @@
     <div class="field"><label>Contraseña</label><input type="password" id="l-pass" placeholder="••••••••"></div>
     <button class="btn" id="l-btn" onclick="doLogin()">Ingresar</button>
     <div class="msg-error" id="l-error"></div>
+    <div class="msg-error" id="l-resend-box" style="display:none; background:#EEF3FF; border-color:#C9D8F5; color:var(--navy);">
+      ¿No te llegó el mail de confirmación? <a href="#" id="l-resend-link" style="color:var(--navy2); font-weight:700;">Reenviar link</a>
+    </div>
     <p class="forgot"><a href="/olvide-contrasena.html">¿Olvidaste tu contraseña?</a></p>
     <p class="hint">¿Todavía no tenés acceso? <a href="/register.html">Solicitar acceso</a></p>
     <p class="contact">¿Problemas para ingresar? Escribinos a <a href="https://wa.me/5491155958862" target="_blank">+54 9 11 5595-8862</a></p>
@@ -51,7 +54,9 @@ async function doLogin() {
   const email = document.getElementById('l-email').value.trim();
   const password = document.getElementById('l-pass').value;
   const errorBox = document.getElementById('l-error');
+  const resendBox = document.getElementById('l-resend-box');
   errorBox.style.display = 'none';
+  resendBox.style.display = 'none';
   if (!email || !password) {
     errorBox.textContent = 'Completá email y contraseña.';
     errorBox.style.display = 'block';
@@ -69,6 +74,10 @@ async function doLogin() {
     if (!res.ok) {
       errorBox.textContent = data.error || 'Usuario o contraseña incorrectos.';
       errorBox.style.display = 'block';
+      // Si el motivo es "todavía no confirmaste tu email", ofrecemos reenviar el link.
+      if (data.error && data.error.toLowerCase().includes('confirmaste')) {
+        resendBox.style.display = 'block';
+      }
       btn.disabled = false; btn.textContent = 'Ingresar';
       return;
     }
@@ -80,6 +89,25 @@ async function doLogin() {
   }
 }
 document.getElementById('l-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+document.getElementById('l-resend-link').addEventListener('click', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('l-email').value.trim();
+  if (!email) { alert('Ingresá tu email arriba primero.'); return; }
+  const link = e.target;
+  const original = link.textContent;
+  link.textContent = 'Enviando...';
+  try {
+    await fetch('/api/resend-verification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+  } catch (err) { /* igual mostramos el mensaje genérico */ }
+  document.getElementById('l-resend-box').innerHTML =
+    'Si el email está pendiente de confirmación, te reenviamos el link. Revisá tu bandeja de entrada (y spam).';
+  link.textContent = original;
+});
 
 fetch('/api/me', { credentials: 'include', cache: 'no-store' }).then(async (res) => {
   if (res.ok) {

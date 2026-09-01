@@ -86,6 +86,16 @@
   status = 200
 
 [[redirects]]
+  from = "/api/resend-verification"
+  to = "/.netlify/functions/resend-verification"
+  status = 200
+
+[[redirects]]
+  from = "/api/catalog-export"
+  to = "/.netlify/functions/catalog-export"
+  status = 200
+
+[[redirects]]
   from = "/"
   to = "/login.html"
   status = 200
