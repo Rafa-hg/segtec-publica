@@ -64,6 +64,17 @@ function detectColumns(ws, sheetName) {
       if (!text) continue;
       if (aliases.some((alias) => text.includes(alias))) {
         found = c + 1; // 1-indexado
+        // Si el encabezado está combinado (merge) sobre varias columnas
+        // (p.ej. "MARCA" en A3:B3), ExcelJS repite el mismo texto en todas
+        // las celdas del rango. El dato real del producto vive en la ÚLTIMA
+        // columna del combinado (la primera suele quedar vacía, reservada
+        // para las franjas de sección "▌ ..."), así que extendemos la
+        // detección hasta ahí en vez de quedarnos con la primera columna.
+        let lastIdx = c;
+        while (lastIdx + 1 < headerTexts.length && headerTexts[lastIdx + 1] === text) {
+          lastIdx++;
+        }
+        found = lastIdx + 1; // 1-indexado, última columna del combinado
         break;
       }
     }
