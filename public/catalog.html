@@ -563,8 +563,8 @@ function renderGrid(){
         '</div>'+
         (specsHtml?'<div class="list-specs">'+specsHtml+'</div>':'<div class="list-specs"></div>')+
         '<div class="list-price">'+
-          (p.gremio?'<div class="gremio-line">Gremio: '+fmtMoney(p.gremio)+'</div>':'')+
-          '<span class="from">Precio</span><span class="amount">'+fmtMoney(p.precio)+'</span></div>'+
+          (p.gremio?'<div class="gremio-line">Precio Gremio Final: '+fmtMoney(p.gremio)+'</div>':'')+
+          '<span class="from">Precio Público Final</span><span class="amount">'+fmtMoney(p.precio)+'</span></div>'+
         '<div class="list-action"><button class="'+(selected?'on':'')+'">'+(selected?'✓ Seleccionado':'+ Seleccionar')+'</button></div>';
       row.querySelector('.list-action button').onclick = ()=> toggleSelect(currentTab, p);
       main.appendChild(row);
@@ -592,8 +592,8 @@ function renderGrid(){
         '<span class="brand-tag '+brandClass(p.marca)+'">'+(p.marca||'')+'</span>'+
         '<div class="card-title">'+p.desc+'</div>'+
         (specsList?'<ul class="card-specs">'+specsList+'</ul>':'')+
-        (p.gremio?'<div class="gremio-line">Gremio: '+fmtMoney(p.gremio)+'</div>':'')+
-        '<div class="card-price"><span class="from">Precio</span>'+fmtMoney(p.precio)+'</div>'+
+        (p.gremio?'<div class="gremio-line">Precio Gremio Final: '+fmtMoney(p.gremio)+'</div>':'')+
+        '<div class="card-price"><span class="from">Precio Público Final</span>'+fmtMoney(p.precio)+'</div>'+
         '<button class="btn-select'+(selected?' on':'')+'">'+(selected?'✓ Seleccionado':'+ Seleccionar')+'</button>'+
       '</div>';
     card.querySelector('.btn-select').onclick = ()=> toggleSelect(currentTab, p);
@@ -621,8 +621,8 @@ function openCompare(){
     html += '</tr><tr><td class="label">'+label+'</td>';
     list.forEach(p=>{ let v=p[f]||'—'; if(f==='peso'&&p[f]) v=p[f]+' kg'; html+='<td>'+v+'</td>'; });
   });
-  html += '</tr><tr><td class="label">Precio Gremio</td>'; list.forEach(p=>{ html+='<td>'+(p.gremio?fmtMoney(p.gremio):'—')+'</td>'; });
-  html += '</tr><tr><td class="label">Precio</td>'; list.forEach(p=>{ html+='<td class="compare-price">'+fmtMoney(p.precio)+'</td>'; });
+  html += '</tr><tr><td class="label">Precio Gremio Final</td>'; list.forEach(p=>{ html+='<td>'+(p.gremio?fmtMoney(p.gremio):'—')+'</td>'; });
+  html += '</tr><tr><td class="label">Precio Público Final</td>'; list.forEach(p=>{ html+='<td class="compare-price">'+fmtMoney(p.precio)+'</td>'; });
   html += '</tr><tr><td class="label"></td>'; list.forEach(p=>{ html+='<td><button class="compare-remove" onclick="toggleSelect(\''+p.sheet+'\','+JSON.stringify(p).replace(/"/g,'&quot;')+'); openCompare();">Quitar</button></td>'; });
   html += '</tr></table>';
   body.innerHTML = html;
