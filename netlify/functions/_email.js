@@ -1,3 +1,4 @@
+
 const nodemailer = require('nodemailer');
 
 function getTransport() {
@@ -82,9 +83,17 @@ async function sendPasswordResetEmail(user, token) {
 
 async function sendQuoteRequest(data) {
   const to = process.env.QUOTES_EMAIL || 'ventas02@segtec.com.ar';
-  const lines = data.items.map(
-    it => `- ${it.marca || ''} ${it.desc || ''} (${it.codigo || ''}) — ${it.precio != null ? '$ ' + Math.round(it.precio).toLocaleString('es-AR') : 'Consultar'}`
-  );
+  const tipoLabel = { gremio: 'Precio Gremio Final', publico: 'Precio Público Final' };
+  // El tipo de precio viaja por ítem (por si en el futuro se permite mezclar);
+  // hoy el frontend manda el mismo valor en todos, así que se toma del primero
+  // para el encabezado y, si algún ítem lo tuviera distinto, se aclara en su línea.
+  const tipoGeneral = data.items.find(it => it.tipoPrecio)?.tipoPrecio;
+  const lines = data.items.map((it) => {
+    const precioTxt = it.precio != null ? '$ ' + Math.round(it.precio).toLocaleString('es-AR') : 'Consultar';
+    const difiere = it.tipoPrecio && it.tipoPrecio !== tipoGeneral;
+    const etiqueta = difiere ? ` [${tipoLabel[it.tipoPrecio] || it.tipoPrecio}]` : '';
+    return `- ${it.marca || ''} ${it.desc || ''} (${it.codigo || ''}) — ${precioTxt}${etiqueta}`;
+  });
   return sendMailSafe({
     to,
     replyTo: data.email || undefined,
@@ -94,6 +103,7 @@ async function sendQuoteRequest(data) {
       'Teléfono / WhatsApp: ' + data.telefono + '\n' +
       'Email: ' + (data.email || '—') + '\n' +
       (data.comentario ? ('Comentario: ' + data.comentario + '\n') : '') +
+      (tipoGeneral ? ('Tipo de precio solicitado: ' + (tipoLabel[tipoGeneral] || tipoGeneral) + '\n') : '') +
       '\nProductos consultados:\n' + lines.join('\n'),
   });
 }
