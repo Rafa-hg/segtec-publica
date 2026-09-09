@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -630,16 +631,43 @@ function openCompare(){
 }
 function closeCompare(){ document.getElementById('compare-overlay').classList.remove('show'); }
 
+// Devuelve el precio a usar según el tipo elegido, con fallback a público
+// si el producto no tiene precio de gremio cargado.
+function quotePriceFor(p, tipo){
+  if (tipo === 'gremio' && p.gremio) return p.gremio;
+  return p.precio;
+}
+
+function renderQuoteItems(){
+  const tipo = (document.querySelector('input[name="q-price-type"]:checked')||{}).value || 'publico';
+  const list = document.getElementById('quote-items-list');
+  if (!list) return;
+  list.innerHTML = selection.map(p=>{
+    const usaFallback = tipo === 'gremio' && !p.gremio;
+    const nota = usaFallback ? ' <span class="from" style="font-size:10.5px;">(sin gremio, público)</span>' : '';
+    return '<div class="quote-item"><span>'+p.marca+' — '+p.desc+nota+'</span><span>'+fmtMoney(quotePriceFor(p, tipo))+'</span></div>';
+  }).join('');
+}
+
 function openQuote(){
   if(!selection.length) return;
+  const tieneGremio = selection.some(p=>p.gremio);
   const body = document.getElementById('quote-body');
   body.innerHTML =
-    '<div class="quote-items">'+selection.map(p=>'<div class="quote-item"><span>'+p.marca+' — '+p.desc+'</span><span>'+fmtMoney(p.precio)+'</span></div>').join('')+'</div>'+
+    (tieneGremio?(
+    '<div class="field"><label>Precio a incluir en la solicitud</label>'+
+      '<div class="price-type-toggle" style="display:flex;gap:14px;font-size:13px;margin-top:4px;">'+
+        '<label style="display:flex;align-items:center;gap:5px;"><input type="radio" name="q-price-type" value="publico" checked onchange="renderQuoteItems()"> Precio Público Final</label>'+
+        '<label style="display:flex;align-items:center;gap:5px;"><input type="radio" name="q-price-type" value="gremio" onchange="renderQuoteItems()"> Precio Gremio Final</label>'+
+      '</div></div>'
+    ):'')+
+    '<div class="quote-items" id="quote-items-list"></div>'+
     '<div class="field"><label>Nombre y apellido</label><input id="q-name" type="text" placeholder="Tu nombre" value="'+(currentUser.name||'')+'"></div>'+
     '<div class="field"><label>Teléfono / WhatsApp</label><input id="q-phone" type="text" placeholder="Tu teléfono de contacto" value="'+(currentUser.whatsapp||'')+'"></div>'+
     '<div class="field"><label>Email</label><input id="q-email" type="email" placeholder="tu@email.com" value="'+(currentUser.email||'')+'"></div>'+
     '<div class="field"><label>Comentario (opcional)</label><textarea id="q-comment" placeholder="Contanos algo más, ej: zona, tipo de instalación..."></textarea></div>'+
     '<button class="btn-submit-quote" id="q-submit-btn" onclick="submitQuote()">Enviar solicitud</button>';
+  renderQuoteItems();
   document.getElementById('quote-overlay').classList.add('show');
 }
 function closeQuote(){ document.getElementById('quote-overlay').classList.remove('show'); }
@@ -654,14 +682,19 @@ async function submitQuote(){
   const btn = document.getElementById('q-submit-btn');
   btn.disabled = true; btn.textContent = 'Enviando...';
 
-  const items = selection.map(p => ({ marca: p.marca, desc: p.desc, codigo: p.codigo, precio: p.precio }));
+  const tipoPrecio = (document.querySelector('input[name="q-price-type"]:checked')||{}).value || 'publico';
+  const items = selection.map(p => ({
+    marca: p.marca, desc: p.desc, codigo: p.codigo,
+    precio: quotePriceFor(p, tipoPrecio),
+    tipoPrecio,
+  }));
 
   try {
     const res = await fetch('/api/quotes-request', {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre: name, telefono: phone, email, comentario: comment, items }),
+      body: JSON.stringify({ nombre: name, telefono: phone, email, comentario: comment, items, tipoPrecio }),
     });
     if (!res.ok) {
       const data = await res.json().catch(()=>({}));
